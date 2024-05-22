@@ -374,6 +374,7 @@ samplesize.saito<- function(rho,
                             N_max=1e3,
                             N_min=12,
                             tol = 1e-6,
+                            seed.start = 1,
                             verbose = FALSE){
   
   St <- Sys.time()
@@ -404,7 +405,7 @@ samplesize.saito<- function(rho,
     ciw <- parSapply(cl, 1:crs, function(i) {
       fail_count = 0
       wd = c()
-      st_seed = i*nsims
+      st_seed = i*nsims+seed.start
       while(length(wd)<nsims/crs){
         set.seed(st_seed)
         data <- data_gen(n = n, k =k, rho=rho, R=R)
@@ -1092,12 +1093,14 @@ ui <- navbarPage(
         ),
         conditionalPanel(
           condition = "input.SProc == 'Procedure by Doros and Lew'",
-          numericInput("k", label = "Number of raters/repetitions per participant:",
+          numericInput("k2", label = "Number of raters/repetitions per participant:",
                        min = 2, max = 100, step = 1, value = 5),
-          numericInput("n_min", label = "Minimum number of participants for search:",
+          numericInput("n_min2", label = "Minimum number of participants for search:",
                        min = 5, max = 5e3, step = 1, value = 5),
-          numericInput("n_max", label = "Maximum number of participants for search:",
-                       min = 5, max = 5e3, step = 1, value = 100)
+          numericInput("n_max2", label = "Maximum number of participants for search:",
+                       min = 5, max = 5e3, step = 1, value = 100),
+          numericInput("seed2", label = "Seed:",
+                       min = 0, max = Inf, step = 1, value = 123)
         ),
         conditionalPanel(
           condition = "input.SProc == 'Procedure by Saito et al.'",
@@ -1156,16 +1159,17 @@ server <- function(input,output) {
       withProgress(message = 'Computing', style = 'notification', value = 0,{
         ss <- samplesize.doros(rho = rho,
                                R = R,
-                               k = as.numeric(input$k),
+                               k = as.numeric(input$k2),
                                target = target,
                                alpha = alpha,
-                               n_max = as.numeric(input$n_max),
-                               n_min = as.numeric(input$n_min),
+                               n_max = as.numeric(input$n_max2),
+                               n_min = as.numeric(input$n_min2),
                                nsims = Sims,
                                method = method,
+                               seed.start = as.numeric(input$seed2),
                                verbose = TRUE)
         rt[["n"]] = ss$Sample.Size
-        rt[["k"]] = as.numeric(input$k)
+        rt[["k"]] = as.numeric(input$k2)
         rt[["wd"]]= ss$Final.Val
       })
     } else if(input$SProc == 'Procedure by Saito et al.'){
