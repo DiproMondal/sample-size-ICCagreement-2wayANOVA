@@ -387,7 +387,7 @@ samplesize.saito<- function(rho,
   
   ci.func <- eval(parse(text=paste0("ci.",method)))
   width<- function(n,k,rho,R,alpha=0.05){
-    cl <- makeCluster(crs, outfile="hoopa.txt")
+    cl <- makeCluster(crs)
     on.exit(stopCluster(cl), add = TRUE)
     clusterExport(cl, list("n",
                            "k",
