@@ -1208,26 +1208,7 @@ server <- function(input,output) {
     } else if(!(is.null(input$SSt)) & input$SSt == 'Variance Partitioning Confidence Interval - F method'){
       method <- "variance.partition"
     }
-    
-    if(input$SProc == 'Procedure by Dobbin et al.'){
-      observeEvent(input$n_min,{
-        updateNumericInput(inputId = "n_max", 
-                           min = input$n_min + 5,
-                           max = input$n_max)
-      })
-    } else if(input$SProc == 'Procedure by Doros and Lew'){
-      observeEvent(input$n_min,{
-        updateNumericInput(inputId = "n_max", 
-                           min = input$n_min + 5,
-                           max = input$n_max)
-      })
-    } else if(input$SProc == 'Procedure by Saito et al.'){
-      observeEvent(input$Nmin,{
-        updateNumericInput(inputId = "Nmax", 
-                           min = input$Nmin + 10,
-                           max = input$Nmax)
-      })
-    }
+
     
     if(input$SProc == 'Procedure by Dobbin et al.'){
       withProgress(message = 'Computing', style = 'notification', value = 0,{
