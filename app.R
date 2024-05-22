@@ -1150,7 +1150,7 @@ ui <- navbarPage(
         sliderInput("alpha", label = "Confidence level",
                     min = 0.8, max = 0.99, step = 0.01, value = 0.95),
         numericInput("Sims", label = "Number of simulations",
-                     min = 10, max = 1e4, step = 10, value = 1000)
+                     min = 10, max = 1e4, step = 10, value = 5000)
       ),
       mainPanel(
         conditionalPanel(
