@@ -368,6 +368,7 @@ samplesize.saito<- function(rho,
                             N_max=1e3,
                             N_min=12,
                             tol = 1e-6,
+                            seed.start = 0,
                             verbose = FALSE){
   
   St <- Sys.time()
@@ -393,12 +394,13 @@ samplesize.saito<- function(rho,
                            "data_gen",
                            "ICC_estimate",
                            "target",
-                           "nclus"),
+                           "nclus",
+                           "seed.start"),
                   envir=environment())
     ciw <- parSapply(cl, 1:nclus, function(i) {
       fail_count = 0
       wd = c()
-      st_seed = i*nsims
+      st_seed = i*nsims+seed.start
       while(length(wd)<nsims/nclus){
         set.seed(st_seed)
         data <- data_gen(n = n, k =k, rho=rho, R=R)
@@ -908,6 +910,7 @@ samplesize.doros<- function(rho,
                             n_max=1e3,
                             n_min=4,
                             tol = 1e-6,
+                            seed.start = 0,
                             verbose = FALSE){
   
   St <- Sys.time()
@@ -926,13 +929,15 @@ samplesize.doros<- function(rho,
                            "alpha",
                            "data_gen",
                            "ICC_estimate",
-                           "target"),
+                           "target",
+                           "nclus",
+                           "seed.start"),
                   envir=environment())
-    ciw <- parSapply(cl, 1:10, function(i) {
+    ciw <- parSapply(cl, 1:nclus, function(i) {
       fail_count = 0
       wd = c()
-      st_seed = i*nsims
-      while(length(wd)<nsims/10){
+      st_seed = i*nsims+seed.start
+      while(length(wd)<nsims/nclus){
         set.seed(st_seed)
         data <- data_gen(n = n, k =k, rho=rho, R=R)
         cis <- try(ci.func(data, alpha= alpha))
