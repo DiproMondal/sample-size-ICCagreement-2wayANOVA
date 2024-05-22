@@ -922,7 +922,7 @@ samplesize.doros<- function(rho,
   
   ci.func <- eval(parse(text=paste0("ci.",method)))
   width<- function(n,k,rho,R,alpha=0.05){
-    cl <- makeCluster(crs, outfile="temp.txt")
+    cl <- makeCluster(crs)
     on.exit(stopCluster(cl), add = TRUE)
     clusterExport(cl, list("n",
                            "k",
@@ -933,7 +933,8 @@ samplesize.doros<- function(rho,
                            "alpha",
                            "data_gen",
                            "ICC_estimate",
-                           "target"),
+                           "target",
+                           "crs"),
                   envir=environment())
     ciw <- parSapply(cl, 1:crs, function(i) {
       fail_count = 0
@@ -946,7 +947,8 @@ samplesize.doros<- function(rho,
         if(inherits(cis,"try-error")){
           fail_count <- fail_count + 1
         }
-        if(fail_count>round(nsims/crs)){
+        
+        if(fail_count>round(nsims/10)){
           return(Inf)
         }else{
           wd <- c(wd, cis[['Upper']]-cis[['Lower']])
@@ -996,82 +998,6 @@ samplesize.doros<- function(rho,
                 "Search.Vals" = target-bis[['Search.vals']],
                 "Time"=Sys.time()-St))
   }
-}
-
-
-samplesize.dobbin <- function(rho, R, k, target, max_n=1e3, min_n=4, seed=2, method="GCI", alpha= 0.05, reps = 1e2, reps_VC = 1e2){
-  
-  st <- Sys.time()
-  
-  cat("Start*************", "k", k, "R", R, "rho", rho, "target",target, "method", method, "time", st, "\n")
-  opt = list()
-  opt[['k']] = k
-  opt[['rho']] = rho
-  opt[['R']] = R
-  opt[['target']] = target
-  
-  width_fun <- if(method=="GCI"){
-    function(x){
-      target-myGCIwidthfun(sigmabsq = (R+1)/(1/rho-1), 
-                           sigmalsq = R, 
-                           sigmaesq = 1,
-                           b0=x,
-                           l0 = k,
-                           r0=1,
-                           mcrunsMS = reps, 
-                           mcrunsW = reps_VC,
-                           randomseed = seed)
-    }
-  }else if(method=="MLSG"){
-    function(x){
-      target-myMLSvolfun(alpha=alpha,
-                         b0=x,
-                         l0 = k,
-                         r0=1,
-                         sigmabsq = (R+1)/(1/rho-1), 
-                         sigmalsq = R, 
-                         sigmaesq = 1,
-                         MCruns = reps,
-                         randseed = seed
-      )
-    }
-  }
-  
-  if(width_fun(min_n)>0){
-    opt[['final']] = min_n
-    opt[['final.val']] = width_fun(min_n)
-    return(opt)
-  }
-  if(width_fun(max_n)<0){
-    for(i in 1:3){
-      max_n <- max_n*10
-      wd = width_fun(max_n)
-      if(wd>0){
-        break
-      }else if(wd<0){
-        opt[['final']] = Inf
-        opt[['final.val']] = target-width_fun(max_n)
-        return(opt)
-      }
-    }}
-  
-  
-  
-  
-  bis <- bisection(f=width_fun,
-                   a = min_n,
-                   b = max_n,
-                   integer_vals = TRUE,
-                   verbose = TRUE
-  )
-  
-  cat("k", k, "R", R, "rho", rho, "target",target, "time", Sys.time()-st, "Complete*************\n")
-  opt[['time']] = Sys.time()-st
-  opt[['final']] = bis[['final']]
-  opt[['Search.vals']]=target-bis[['Search.vals']]
-  opt[['final.val']] = target-bis[['final.val']]
-  return(opt)
-  
 }
 
 ui <- navbarPage(
