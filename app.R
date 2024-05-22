@@ -400,7 +400,8 @@ samplesize.saito<- function(rho,
                            "data_gen",
                            "ICC_estimate",
                            "target",
-                           "crs"),
+                           "crs",
+                           "seed.start"),
                   envir=environment())
     ciw <- parSapply(cl, 1:crs, function(i) {
       fail_count = 0
@@ -916,6 +917,7 @@ samplesize.doros<- function(rho,
                             n_max=1e3,
                             n_min=4,
                             tol = 1e-6,
+                            seed.start = 1,
                             verbose = FALSE){
   
   St <- Sys.time()
@@ -935,12 +937,13 @@ samplesize.doros<- function(rho,
                            "data_gen",
                            "ICC_estimate",
                            "target",
-                           "crs"),
+                           "crs",
+                           "seed.start"),
                   envir=environment())
     ciw <- parSapply(cl, 1:crs, function(i) {
       fail_count = 0
       wd = c()
-      st_seed = i*nsims
+      st_seed = i*nsims+seed.start
       while(length(wd)<nsims/crs){
         set.seed(st_seed)
         data <- data_gen(n = n, k =k, rho=rho, R=R)
@@ -1107,7 +1110,9 @@ ui <- navbarPage(
           numericInput("Nmin", label = "Minimum number of total observations for search:",
                        min = 10, max = 5e3, step = 1, value = 10),
           numericInput("Nmax", label = "Maximum number of total observations for search:",
-                       min = 10, max = 5e3, step = 1, value = 200)
+                       min = 10, max = 5e3, step = 1, value = 200),
+          numericInput("seed3", label = "Seed:",
+                       min = 0, max = Inf, step = 1, value = 123)
         )
       )
     )
@@ -1182,6 +1187,7 @@ server <- function(input,output) {
                                N_max = as.numeric(input$Nmax),
                                N_min = as.numeric(input$Nmin),
                                method = method,
+                               seed.start = as.numeric(input$seed3),
                                verbose = FALSE)
         rt[["n"]] = ss$n
         rt[["k"]] = ss$k
