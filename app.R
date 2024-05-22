@@ -441,9 +441,7 @@ samplesize.saito<- function(rho,
   N.a <- N_min
   N.b <- N_max
   Nf <- N_max
-  #N.mid <- Ncombs[which(Ncombs[['N']]>=(N.a+N.b)/2),][1,3]
   N.search <- c()
-  #wd.mid <- w(N.mid)
   w.search <- c()
   
   N_maxa <-  Ncombs[which(Ncombs[['N']]==max(Ncombs[['N']])),][1,3]
@@ -907,6 +905,7 @@ bisection <- function(f, a, b,
   }
 }
 
+
 samplesize.doros<- function(rho,
                             R,
                             k,
@@ -1004,6 +1003,80 @@ samplesize.doros<- function(rho,
   }
 }
 
+samplesize.dobbin <- function(rho, R, k, target=0.3, max_n=1e3, min_n=4, seed=2, method="GCI", alpha= 0.05, reps = 1e3, reps_VC = 1e2){
+  st <- Sys.time()
+  
+  cat("Start*************", "k", k, "R", R, "rho", rho, "target",target, "method", method, "Starting\n")
+  opt = list()
+  opt[['k']] = k
+  opt[['rho']] = rho
+  opt[['R']] = R
+  opt[['target']] = target
+
+  width_fun <- if(method=="GCI"){
+    function(x){
+      target-myGCIwidthfun(sigmabsq = (R+1)/(1/rho-1), 
+                           sigmalsq = R, 
+                           sigmaesq = 1,
+                           alpha = alpha, 
+                           b0=x,
+                           l0 = k,
+                           r0=1,
+                           mcrunsMS = reps, 
+                           mcrunsW = reps_VC,
+                           randomseed = seed)
+    }
+  }else if(method=="MLSG"){
+    function(x){
+      target-myMLSvolfun(alpha=alpha,
+                         b0=x,
+                         l0 = k,
+                         r0=1,
+                         sigmabsq = (R+1)/(1/rho-1), 
+                         sigmalsq = R, 
+                         sigmaesq = 1,
+                         MCruns = reps,
+                         randseed = seed
+      )
+    }
+  }
+  
+  if(width_fun(min_n)>0){
+    opt[['final']] = min_n
+    opt[['final.val']] = width_fun(min_n)
+    return(opt)
+  }
+  if(width_fun(max_n)<0){
+    for(i in 1:3){
+      max_n <- max_n*10
+      wd = width_fun(max_n)
+      if(wd>0){
+        break
+      }else if(wd<0){
+        opt[['final']] = Inf
+        opt[['final.val']] = target-width_fun(max_n)
+        return(opt)
+      }
+    }}
+  
+  
+  
+  
+  bis <- bisection(f=width_fun,
+                   a = min_n,
+                   b = max_n,
+                   integer_vals = TRUE,
+                   verbose = TRUE
+  )
+  cat("k", k, "R", R, "rho", rho, "target",target, "time", Sys.time()-st, "Complete*************\n")
+  opt[['time']] = Sys.time()-st
+  opt[['final']] = bis[['final']]
+  opt[['Search.vals']]=target-bis[['Search.vals']]
+  opt[['final.val']] = target-bis[['final.val']]
+  return(opt)
+  
+}
+
 ui <- navbarPage(
   title = em("Sample Size App"),
   tabPanel(
@@ -1026,8 +1099,10 @@ ui <- navbarPage(
                ),
                conditionalPanel(
                  condition = "input.SProc == 'Procedure by Doros and Lew'",
-                 radioButtons("SDb", label = NULL,
-                              choices = c("Variance Partitioning Confidence Interval - F method"),
+                 radioButtons("SDl", label = NULL,
+                              choices = c("Variance Partitioning Confidence Interval - F method",
+                                          "Generalized Confidence Interval", 
+                                          "Modified Large Sample Confidence Interval"),
                               selected = "Variance Partitioning Confidence Interval - F method")
                ),
                conditionalPanel(
@@ -1085,13 +1160,17 @@ ui <- navbarPage(
       mainPanel(
         conditionalPanel(
           condition = "input.SProc == 'Procedure by Dobbin et al.'",
+          conditionalPanel(
+            condition = "input.SDb == 'Generalized Confidence Interval'",
+            numericInput("SimsW", label="Number of simulations within:",
+                         min= 10, max=1000, step=1, value=20)),
           numericInput("k", label = "Number of raters/repetitions per participant:",
                        min = 2, max = 100, step = 1, value = 5),
           numericInput("n_min", label = "Minimum number of participants for search:",
                        min = 5, max = 5e3, step = 1, value = 6),
           numericInput("n_max", label = "Maximum number of participants for search:",
                        min = 5, max = 5e3, step = 1, value = 200),
-          numericInput("seed", label = "Seed:",
+          numericInput("seed1", label = "Seed:",
                        min = 0, max = Inf, step = 1, value = 123789)
         ),
         conditionalPanel(
@@ -1119,11 +1198,12 @@ ui <- navbarPage(
   ),
   tabPanel(
     title = strong("Results"),
-    mainPanel(tableOutput("Smps"))
+    mainPanel(tableOutput("Smps")),
+    #actionButton("stop", "Stop")
   )
 )
 
-server <- function(input,output) {
+server <- function(input,output,session) {
   dataSS <- reactive({
     alpha <- 1 - as.numeric(input$alpha)
     rho   <- as.numeric(input$rho)
@@ -1134,15 +1214,17 @@ server <- function(input,output) {
     rt <- NULL
     
     if((!(is.null(input$SDb)) & input$SDb == 'Generalized Confidence Interval') || 
-       (!(is.null(input$SSt)) & input$SSt == 'Generalized Confidence Interval')){
+       (!(is.null(input$SSt)) & input$SSt == 'Generalized Confidence Interval') ||
+       (!(is.null(input$SDl)) & input$SDl == 'Generalized Confidence Interval')){
       method <- "GCI" 
     } else if((!(is.null(input$SDb)) & input$SDb == 'Modified Large Sample Confidence Interval') || 
+              (!(is.null(input$SDl)) & input$SDb == 'Modified Large Sample Confidence Interval') ||
               (!(is.null(input$SSt)) & input$SSt == 'Modified Large Sample Confidence Interval')){
       method <- "MLSG" 
-    } else if(!(is.null(input$SSt)) & input$SSt == 'Variance Partitioning Confidence Interval - F method'){
+    } else if((!(is.null(input$SSt)) & input$SSt == 'Variance Partitioning Confidence Interval - F method')||
+              (!(is.null(input$SDl)) & input$Sdl == 'Variance Partitioning Confidence Interval - F method')){
       method <- "variance.partition"
     }
-
     
     if(input$SProc == 'Procedure by Dobbin et al.'){
       withProgress(message = 'Computing', style = 'notification', value = 0,{
@@ -1154,8 +1236,9 @@ server <- function(input,output) {
                                 max_n = as.numeric(input$n_max),
                                 min_n = as.numeric(input$n_min),
                                 reps = Sims,
+                                reps_VC = as.numeric(input$SimsW), 
                                 method = method,
-                                seed = as.numeric(input$seed))
+                                seed = as.numeric(input$seed1))
         rt[["n"]] = ss$final
         rt[["k"]] = as.numeric(input$k)
         rt[["wd"]]= ss$final.val
