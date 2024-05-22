@@ -401,18 +401,18 @@ samplesize.saito<- function(rho,
                            "ICC_estimate",
                            "target"),
                   envir=environment())
-    ciw <- parSapply(cl, 1:10, function(i) {
+    ciw <- parSapply(cl, 1:crs, function(i) {
       fail_count = 0
       wd = c()
       st_seed = i*nsims
-      while(length(wd)<nsims/10){
+      while(length(wd)<nsims/crs){
         set.seed(st_seed)
         data <- data_gen(n = n, k =k, rho=rho, R=R)
         cis <- try(ci.func(data, alpha= alpha))
         if(inherits(cis,"try-error")){
           fail_count <- fail_count + 1
         }
-        if(fail_count>round(nsims/100)){
+        if(fail_count>round(nsims/(crs*10))){
           return(Inf)
         }else{
           wd <- c(wd, cis[['Upper']]-cis[['Lower']])
