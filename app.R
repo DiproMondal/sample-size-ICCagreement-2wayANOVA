@@ -1,4 +1,3 @@
-
 rm(list=ls())
 if (!require(pscl)) {
   install.packages("pscl")
@@ -388,7 +387,7 @@ samplesize.saito<- function(rho,
   
   ci.func <- eval(parse(text=paste0("ci.",method)))
   width<- function(n,k,rho,R,alpha=0.05){
-    cl <- makeCluster(crs, outfile="temp.txt")
+    cl <- makeCluster(crs, outfile="hoopa.txt")
     on.exit(stopCluster(cl), add = TRUE)
     clusterExport(cl, list("n",
                            "k",
@@ -399,7 +398,8 @@ samplesize.saito<- function(rho,
                            "alpha",
                            "data_gen",
                            "ICC_estimate",
-                           "target"),
+                           "target",
+                           "crs"),
                   envir=environment())
     ciw <- parSapply(cl, 1:crs, function(i) {
       fail_count = 0
@@ -412,7 +412,7 @@ samplesize.saito<- function(rho,
         if(inherits(cis,"try-error")){
           fail_count <- fail_count + 1
         }
-        if(fail_count>round(nsims/(crs*10))){
+        if(fail_count>round(nsims/crs)){
           return(Inf)
         }else{
           wd <- c(wd, cis[['Upper']]-cis[['Lower']])
@@ -445,8 +445,6 @@ samplesize.saito<- function(rho,
   w.search <- c()
   
   N_maxa <-  Ncombs[which(Ncombs[['N']]==max(Ncombs[['N']])),][1,3]
-  N_mina <-  Ncombs[which(Ncombs[['N']]==min(Ncombs[['N']])),][1,3]
-  
   if(w(N_maxa)>target){
     if(verbose==FALSE){
       return("Sample.Size" = Inf)
@@ -459,34 +457,32 @@ samplesize.saito<- function(rho,
     }
   }
   
-  if(w(N_mina)>target){
-    for (i in 1:length(unique(Ncombs[['N']]))){
-      N.mid <- Ncombs[which(Ncombs[['N']]>=(N.a+N.b)/2),][1,3]
-      wd.mid <- w(N.mid)
-      N.search <- c(N.search, N.mid)
-      w.search <- c(w.search, wd.mid)
-      cat("N:", tail(N.search,1),",min width:", target-tail(w.search,1), "\n")
+  for (i in 1:length(unique(Ncombs[['N']]))){
+    N.mid <- Ncombs[which(Ncombs[['N']]>=(N.a+N.b)/2),][1,3]
+    wd.mid <- w(N.mid)
+    N.search <- c(N.search, N.mid)
+    w.search <- c(w.search, wd.mid)
+    cat("N:", tail(N.search,1),"min width:",target - tail(w.search,1), "\n")
     
-      if (wd.mid>=0 & wd.mid<=tol){
-        Nf <- N.mid
-        break
-      }else if(length(N.search)>2 & tail(N.search,2)[1]==tail(N.search,1)){
-        Nf <- tail(N.search,1)
-        break
-      }
-      if(sign(wd.mid)==sign(w(N.a))){
-        N.a <- N.mid
-      }else{
-        N.b <- N.mid
-      }
-      N.mid <- Ncombs[which(Ncombs[['N']]>=(N.a+N.b)/2),][1,3]
-      nf <- Ncombs[Ncombs[['N']]==Nf,]
+    if (wd.mid>=0 & wd.mid<=tol){
+      Nf <- N.mid
+      break
+    }else if(length(N.search)>2 & tail(N.search,2)[1]==tail(N.search,1)){
+      Nf <- tail(N.search,1)
+      break
     }
-  }else{
-    nf <- Ncombs[Ncombs[['N']]==N_mina,]
+    if(sign(wd.mid)==sign(w(N.a))){
+      N.a <- N.mid
+    }else{
+      N.b <- N.mid
+    }
+    
+    
+    
+    N.mid <- Ncombs[which(Ncombs[['N']]>=(N.a+N.b)/2),][1,3]
   }
   
-  
+  nf <- Ncombs[Ncombs[['N']]==Nf,]
   if(nrow(nf)==1){
     wd.f <- cbind.data.frame(nf, "Width"=wd.mid)
   }else{
@@ -511,6 +507,7 @@ samplesize.saito<- function(rho,
   }
   
 }
+
 
 
 mybisection <- function(f,lower,upper,tol=1e-4) {
@@ -949,8 +946,7 @@ samplesize.doros<- function(rho,
         if(inherits(cis,"try-error")){
           fail_count <- fail_count + 1
         }
-        
-        if(fail_count>round(nsims/(crs*10))){
+        if(fail_count>round(nsims/crs)){
           return(Inf)
         }else{
           wd <- c(wd, cis[['Upper']]-cis[['Lower']])
@@ -1067,7 +1063,7 @@ samplesize.dobbin <- function(rho, R, k, target, max_n=1e3, min_n=4, seed=2, met
                    b = max_n,
                    integer_vals = TRUE,
                    verbose = TRUE
-                   )
+  )
   
   cat("k", k, "R", R, "rho", rho, "target",target, "time", Sys.time()-st, "Complete*************\n")
   opt[['time']] = Sys.time()-st
@@ -1252,15 +1248,15 @@ server <- function(input,output) {
     } else if(input$SProc == 'Procedure by Doros and Lew'){
       withProgress(message = 'Computing', style = 'notification', value = 0,{
         ss <- samplesize.doros(rho = rho,
-                                R = R,
-                                k = as.numeric(input$k),
-                                target = target,
-                                alpha = alpha,
-                                n_max = as.numeric(input$n_max),
-                                n_min = as.numeric(input$n_min),
-                                nsims = Sims,
-                                method = method,
-                                verbose = TRUE)
+                               R = R,
+                               k = as.numeric(input$k),
+                               target = target,
+                               alpha = alpha,
+                               n_max = as.numeric(input$n_max),
+                               n_min = as.numeric(input$n_min),
+                               nsims = Sims,
+                               method = method,
+                               verbose = TRUE)
         rt[["n"]] = ss$Sample.Size
         rt[["k"]] = as.numeric(input$k)
         rt[["wd"]]= ss$Final.Val
@@ -1296,3 +1292,5 @@ server <- function(input,output) {
 }
 
 shinyApp(ui, server)
+
+#samplesize.saito(rho=0.9, R= 0.1)
