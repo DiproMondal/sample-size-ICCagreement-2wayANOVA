@@ -1084,7 +1084,7 @@ ui <- navbarPage(
           numericInput("k", label = "Number of raters/repetitions per participant:",
                        min = 2, max = 100, step = 1, value = 5),
           numericInput("n_min", label = "Minimum number of participants for search:",
-                       min = 5, max = 5e3, step = 1, value = 8),
+                       min = 5, max = 5e3, step = 1, value = 6),
           numericInput("n_max", label = "Maximum number of participants for search:",
                        min = 5, max = 5e3, step = 1, value = 200),
           numericInput("seed", label = "Seed:",
@@ -1095,9 +1095,9 @@ ui <- navbarPage(
           numericInput("k", label = "Number of raters/repetitions per participant:",
                        min = 2, max = 100, step = 1, value = 5),
           numericInput("n_min", label = "Minimum number of participants for search:",
-                       min = 5, max = 5e3, step = 1, value = 8),
+                       min = 5, max = 5e3, step = 1, value = 5),
           numericInput("n_max", label = "Maximum number of participants for search:",
-                       min = 5, max = 5e3, step = 1, value = 200)
+                       min = 5, max = 5e3, step = 1, value = 100)
         ),
         conditionalPanel(
           condition = "input.SProc == 'Procedure by Saito et al.'",
