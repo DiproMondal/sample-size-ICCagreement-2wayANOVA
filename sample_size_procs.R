@@ -145,7 +145,11 @@ ci.variance.partition <- function(data,        ## A 2d matrix with columns repre
                          n^2*((k-1)/th.12^2+1/th.4^2)), ncol=3, nrow = 3)
   
   
-  vmat<- solve(FI.mat)
+  vmat<- tryCatch({
+    solve(FI.mat)
+    },error = function(e){
+      solve(FI.mat+diag(3)*1e-2)
+                          })
   diag(vmat) <- replace(diag(vmat),diag(vmat)<0, 1e-8)
   if(method=="F"){
     vmat = diag(diag(vmat))
