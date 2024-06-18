@@ -128,6 +128,7 @@ ui <- navbarPage(
   tabPanel(
     title = strong("Results"),
     mainPanel(tableOutput("Smps")),
+    mainPanel(textOutput("Tmps"), style="color:red")
     #actionButton("stop", "Stop")
   )
 )
@@ -218,6 +219,11 @@ server <- function(input,output,session) {
                check.names = FALSE)},
     sanitize.text.function = function(x) x,
     rownames = FALSE)
+  output$Tmps <- renderText({
+    if(dataSS()$wd>as.numeric(input$target)){
+    ("Warning! \nSample size within supplied search range for the number of participants is not possible.")
+    }
+  })
 }
 
 shinyApp(ui, server)

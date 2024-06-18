@@ -1045,9 +1045,9 @@ samplesize.dobbin <- function(rho, R, k, target, max_n=1e3, min_n=4, seed=2, met
     return(opt)
   }
   if(width_fun(max_n)<0){
-        opt[['final']] = Inf
-        opt[['final.val']] = target-width_fun(max_n)
-        return(opt)
+      opt[['final']] = max_n
+      opt[['final.val']] = target-width_fun(max_n)
+      return(opt)
     }
   
   
