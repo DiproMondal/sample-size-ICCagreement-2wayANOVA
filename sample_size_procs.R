@@ -1131,3 +1131,21 @@ nINF <- function(n =1e3, k, rho, R, method, alpha, nsims){
               "Width.sd" =sd(wids)))
 }
 
+CIdata <- function(datafile, alpha=0.05){
+  data <- as.matrix(read.csv(datafile, header=FALSE, sep=","))
+  ests <- ICC_estimate(data, verbose = TRUE)
+  ciMLSG <- ci.MLSG(data, alpha =alpha)[c("Lower","Upper")]
+  ciVPF  <- ci.variance.partition(data, alpha = alpha)[c("Lower","Upper")]
+  ciGCI  <- ci.GCI(data, alpha = alpha)[c("Lower","Upper")]
+  return(list(
+    "k" = ncol(data),
+    "n" = nrow(data),
+    "ICCA" = ests$ICC.agreement,
+    "ICCC" = ests$ICC.consistency,
+    "R"     = (ests$MS.raters - ests$MS.errors)/nrow(data)/ests$MS.errors,
+    "ciMLSG"=ciMLSG,
+    "ciVPF" = ciVPF,
+    "ciGCI" = ciGCI
+  ))
+}
+

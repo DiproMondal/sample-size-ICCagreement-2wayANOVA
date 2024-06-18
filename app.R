@@ -5,7 +5,7 @@ ui <- navbarPage(
   title = em("Sample Size App"),
   tabsetPanel(id="tabs",type = "tabs",
   tabPanel(
-    title = "Choice of sample size procedure",
+    title = strong("Choice of sample size procedure"),
     fluidRow(
       column(4, offset = 2, h1("Choose Procedure"),
              radioButtons("SProc", label = NULL,
@@ -71,7 +71,7 @@ ui <- navbarPage(
     )
   ),
   tabPanel(
-    title = "Parameter Specification",
+    title = strong("Parameter Specification"),
     sidebarLayout(
       sidebarPanel(
         width = 4,
@@ -126,17 +126,23 @@ ui <- navbarPage(
       )
     )
   ),
+  
   tabPanel(
-    title = "Asymptotics",
+    title = strong("Sample Size Results"),
+    mainPanel(tableOutput("Smps")),
+    mainPanel(textOutput("Tmps"), style="color:red")
+    #actionButton("stop", "Stop")
+  ),
+  tabPanel(
+    title = strong("Asymptotics"),
     fluidRow(
       column(4, offset = 2, h1("Choice of Confidence Interval Method"),
              radioButtons("Asy", label = NULL,
                           choices = c("Generalized Confidence Interval", 
                                       "Modified Large Sample Confidence Interval"),
                           selected = "Modified Large Sample Confidence Interval"))),
-      fluidRow(
-      sidebarPanel(
-        width = 3,h3("Parameters"),
+    fluidRow(
+      column(4, offset=2, h3("Parameters"),
         sliderInput("asyalpha", label = "Confidence level",
                     min = 0.8, max = 0.99, step = 0.01, value = 0.95),
         numericInput("asyk", label = "Number of raters/repetitions per participant:",
@@ -148,17 +154,19 @@ ui <- navbarPage(
         numericInput("asynsims", label = "Number of simulations",
                      min = 1, max = 1e6, step = 1, value = 1000)
       )),
-     fluidRow(
-       column(5,
-         mainPanel(tableOutput("Asmps"))
-       )
-     )
-    ),
+    fluidRow(
+      column(4, offset =2,
+             mainPanel(tableOutput("Asmps"))
+      )
+    )
+  ),
   tabPanel(
-    title = "Results",
-    mainPanel(tableOutput("Smps")),
-    mainPanel(textOutput("Tmps"), style="color:red")
-    #actionButton("stop", "Stop")
+    title = strong("Confidence Intervals"),
+    fileInput("upload", "Upload a file", accept = ".csv"),
+    sliderInput("dataalpha", label = "Confidence level",
+                min = 0.8, max = 0.99, step = 0.01, value = 0.95),
+    mainPanel(tableOutput("nfo")),
+    mainPanel(tableOutput("Cmps"))
   )
 ))
 
@@ -173,13 +181,11 @@ server <- function(input,output,session) {
     rt <- NULL
     if((!(is.null(input$SDb)) & input$SDb == 'Generalized Confidence Interval') || 
        (!(is.null(input$SSt)) & input$SSt == 'Generalized Confidence Interval') ||
-       (!(is.null(input$SDl)) & input$SDl == 'Generalized Confidence Interval') ||
-       (!(is.null(input$Asy)) & input$Asy == 'Generalized Confidence Interval')){
+       (!(is.null(input$SDl)) & input$SDl == 'Generalized Confidence Interval')){
       method <- "GCI" 
     } else if((!(is.null(input$SDb)) & input$SDb == 'Modified Large Sample Confidence Interval') || 
               (!(is.null(input$SDl)) & input$SDl == 'Modified Large Sample Confidence Interval') ||
-              (!(is.null(input$SSt)) & input$SSt == 'Modified Large Sample Confidence Interval') ||
-              (!(is.null(input$Asy)) & input$Asy == 'Modified Large Sample Confidence Interval')){
+              (!(is.null(input$SSt)) & input$SSt == 'Modified Large Sample Confidence Interval')){
       method <- "MLSG" 
     } else if((!(is.null(input$SSt)) & input$SSt == 'Variance Partitioning Confidence Interval - F method')||
               (!(is.null(input$SDl)) & input$Sdl == 'Variance Partitioning Confidence Interval - F method')){
@@ -203,7 +209,6 @@ server <- function(input,output,session) {
             rt[["n"]] = ss$final
             rt[["k"]] = as.numeric(input$k)
             rt[["wd"]]= ss$final.val
-            rt[['Asy']]  = FALSE
           })
         } else if(input$SProc == 'Procedure by Doros and Lew'){
           withProgress(message = 'Computing', style = 'notification', value = 0,{
@@ -221,8 +226,7 @@ server <- function(input,output,session) {
             rt[["n"]] = ss$Sample.Size
             rt[["k"]] = as.numeric(input$k2)
             rt[["wd"]]= ss$Final.Val
-            rt[['Asy']]  = FALSE
-            print(rt)
+
           })
         } else if(input$SProc == 'Procedure by Saito et al.'){
           withProgress(message = 'Computing', style = 'notification', value = 0,{
@@ -239,8 +243,6 @@ server <- function(input,output,session) {
             rt[["n"]] = ss$n
             rt[["k"]] = ss$k
             rt[["wd"]]= ss$Width
-            rt[['Asy']]  = FALSE
-            print(rt)
           })
         }
         return(rt)
@@ -272,10 +274,17 @@ server <- function(input,output,session) {
     rt[["k"]] = as.numeric(input$asyk)
     rt[["Mean"]] = as.numeric(widths[[1]])
     rt[["SD"]]   = as.numeric(widths[[2]])
-    print(widths)
     })
     
     return(rt)
+  })
+  
+  
+  dataRead <- reactive({
+    req(input$upload)
+    ext <- tools::file_ext(input$upload$name)
+    return(CIdata(input$upload$datapath, 
+                  alpha = 1-as.numeric(input$dataalpha)))
   })
   
   output$Asmps<-renderTable({ 
@@ -306,8 +315,24 @@ server <- function(input,output,session) {
         }
       })
 
+  output$nfo <- renderTable({
+    data.frame("Participants" = dataRead()$n,
+               "Raters"       = dataRead()$k,
+               "&#961; (A,1)" = dataRead()$ICCA,
+               "&#961; (C,1)" = dataRead()$ICCC,
+               "R"            = dataRead()$R,
+               check.names=FALSE)},
+  sanitize.text.function = function(x) x,
+  rownames = FALSE)
   
-  
+  output$Cmps <- renderTable({
+    data.frame("VPF" = dataRead()$ciVPF,
+               "MLSG" = dataRead()$ciMLSG,
+               "GCI"  = dataRead()$ciGCI,
+               check.names=FALSE)
+  },
+  sanitize.text.function = function(x) x,
+  rownames = FALSE)
   
 }
 
