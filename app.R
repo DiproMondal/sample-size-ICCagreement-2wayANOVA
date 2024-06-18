@@ -3,8 +3,9 @@ source("sample_size_procs.R", local = TRUE, echo = FALSE)
 
 ui <- navbarPage(
   title = em("Sample Size App"),
+  tabsetPanel(id="tabs",type = "tabs",
   tabPanel(
-    title = strong("Choice of sample size procedure"),
+    title = "Choice of sample size procedure",
     fluidRow(
       column(4, offset = 2, h1("Choose Procedure"),
              radioButtons("SProc", label = NULL,
@@ -13,13 +14,13 @@ ui <- navbarPage(
       )
     ),
     fluidRow(
-      column(4, offset = 2, h2("Choice of Confidence Interval"),
+      column(4, offset = 2, h2("Choice of Confidence Interval Method"),
              mainPanel(
                conditionalPanel(
                  condition = "input.SProc == 'Procedure by Dobbin et al.'",
                  radioButtons("SDb", label = NULL,
                               choices = c("Generalized Confidence Interval", "Modified Large Sample Confidence Interval"),
-                              selected = "Generalized Confidence Interval")
+                              selected = "Modified Large Sample Confidence Interval")
                ),
                conditionalPanel(
                  condition = "input.SProc == 'Procedure by Doros and Lew'",
@@ -70,7 +71,7 @@ ui <- navbarPage(
     )
   ),
   tabPanel(
-    title = strong("Parameter Specification"),
+    title = "Parameter Specification",
     sidebarLayout(
       sidebarPanel(
         width = 4,
@@ -126,12 +127,40 @@ ui <- navbarPage(
     )
   ),
   tabPanel(
-    title = strong("Results"),
+    title = "Asymptotics",
+    fluidRow(
+      column(4, offset = 2, h1("Choice of Confidence Interval Method"),
+             radioButtons("Asy", label = NULL,
+                          choices = c("Generalized Confidence Interval", 
+                                      "Modified Large Sample Confidence Interval"),
+                          selected = "Modified Large Sample Confidence Interval"))),
+      fluidRow(
+      sidebarPanel(
+        width = 3,h3("Parameters"),
+        sliderInput("asyalpha", label = "Confidence level",
+                    min = 0.8, max = 0.99, step = 0.01, value = 0.95),
+        numericInput("asyk", label = "Number of raters/repetitions per participant:",
+                     min = 2, max = 100, step = 1, value = 5),
+        sliderInput("asyrho", label = "Planning value for ICC for agreement:",
+                    min = 0.05, max = 0.95, step = 0.01, value = 0.7),
+        numericInput("asyR", label = "Rater to error variance ratio",
+                     min = 0.001, max = 1000, step = 0.001, value = 0.1),
+        numericInput("asynsims", label = "Number of simulations",
+                     min = 1, max = 1e6, step = 1, value = 1000)
+      )),
+     fluidRow(
+       column(5,
+         mainPanel(tableOutput("Asmps"))
+       )
+     )
+    ),
+  tabPanel(
+    title = "Results",
     mainPanel(tableOutput("Smps")),
     mainPanel(textOutput("Tmps"), style="color:red")
     #actionButton("stop", "Stop")
   )
-)
+))
 
 server <- function(input,output,session) {
   dataSS <- reactive({
@@ -142,88 +171,145 @@ server <- function(input,output,session) {
     target <- as.numeric(input$target)
     method <- ""
     rt <- NULL
-    
     if((!(is.null(input$SDb)) & input$SDb == 'Generalized Confidence Interval') || 
        (!(is.null(input$SSt)) & input$SSt == 'Generalized Confidence Interval') ||
-       (!(is.null(input$SDl)) & input$SDl == 'Generalized Confidence Interval')){
+       (!(is.null(input$SDl)) & input$SDl == 'Generalized Confidence Interval') ||
+       (!(is.null(input$Asy)) & input$Asy == 'Generalized Confidence Interval')){
       method <- "GCI" 
     } else if((!(is.null(input$SDb)) & input$SDb == 'Modified Large Sample Confidence Interval') || 
-              (!(is.null(input$SDl)) & input$SDb == 'Modified Large Sample Confidence Interval') ||
-              (!(is.null(input$SSt)) & input$SSt == 'Modified Large Sample Confidence Interval')){
+              (!(is.null(input$SDl)) & input$SDl == 'Modified Large Sample Confidence Interval') ||
+              (!(is.null(input$SSt)) & input$SSt == 'Modified Large Sample Confidence Interval') ||
+              (!(is.null(input$Asy)) & input$Asy == 'Modified Large Sample Confidence Interval')){
       method <- "MLSG" 
     } else if((!(is.null(input$SSt)) & input$SSt == 'Variance Partitioning Confidence Interval - F method')||
               (!(is.null(input$SDl)) & input$Sdl == 'Variance Partitioning Confidence Interval - F method')){
       method <- "variance.partition"
     }
+
+
+      if(input$SProc == 'Procedure by Dobbin et al.'){
+          withProgress(message = 'Computing', style = 'notification', value = 0,{
+            ss <- samplesize.dobbin(rho = rho,
+                                    R = R,
+                                    k = as.numeric(input$k),
+                                    target = target,
+                                    alpha = alpha,
+                                    max_n = as.numeric(input$n_max),
+                                    min_n = as.numeric(input$n_min),
+                                    reps = Sims,
+                                    reps_VC = as.numeric(input$SimsW), 
+                                    method = method,
+                                    seed = as.numeric(input$seed1))
+            rt[["n"]] = ss$final
+            rt[["k"]] = as.numeric(input$k)
+            rt[["wd"]]= ss$final.val
+            rt[['Asy']]  = FALSE
+          })
+        } else if(input$SProc == 'Procedure by Doros and Lew'){
+          withProgress(message = 'Computing', style = 'notification', value = 0,{
+            ss <- samplesize.doros(rho = rho,
+                                   R = R,
+                                   k = as.numeric(input$k2),
+                                   target = target,
+                                   alpha = alpha,
+                                   n_max = as.numeric(input$n_max2),
+                                   n_min = as.numeric(input$n_min2),
+                                   nsims = Sims,
+                                   method = method,
+                                   seed.start = as.numeric(input$seed2),
+                                   verbose = TRUE)
+            rt[["n"]] = ss$Sample.Size
+            rt[["k"]] = as.numeric(input$k2)
+            rt[["wd"]]= ss$Final.Val
+            rt[['Asy']]  = FALSE
+            print(rt)
+          })
+        } else if(input$SProc == 'Procedure by Saito et al.'){
+          withProgress(message = 'Computing', style = 'notification', value = 0,{
+            ss <- samplesize.saito(rho = rho,
+                                   R = R,
+                                   target = target,
+                                   alpha = alpha,
+                                   nsims = Sims,
+                                   N_max = as.numeric(input$Nmax),
+                                   N_min = as.numeric(input$Nmin),
+                                   method = method,
+                                   seed.start = as.numeric(input$seed3),
+                                   verbose = FALSE)
+            rt[["n"]] = ss$n
+            rt[["k"]] = ss$k
+            rt[["wd"]]= ss$Width
+            rt[['Asy']]  = FALSE
+            print(rt)
+          })
+        }
+        return(rt)
     
-    if(input$SProc == 'Procedure by Dobbin et al.'){
-      withProgress(message = 'Computing', style = 'notification', value = 0,{
-        ss <- samplesize.dobbin(rho = rho,
-                                R = R,
-                                k = as.numeric(input$k),
-                                target = target,
-                                alpha = alpha,
-                                max_n = as.numeric(input$n_max),
-                                min_n = as.numeric(input$n_min),
-                                reps = Sims,
-                                reps_VC = as.numeric(input$SimsW), 
-                                method = method,
-                                seed = as.numeric(input$seed1))
-        rt[["n"]] = ss$final
-        rt[["k"]] = as.numeric(input$k)
-        rt[["wd"]]= ss$final.val
-      })
-    } else if(input$SProc == 'Procedure by Doros and Lew'){
-      withProgress(message = 'Computing', style = 'notification', value = 0,{
-        ss <- samplesize.doros(rho = rho,
-                               R = R,
-                               k = as.numeric(input$k2),
-                               target = target,
-                               alpha = alpha,
-                               n_max = as.numeric(input$n_max2),
-                               n_min = as.numeric(input$n_min2),
-                               nsims = Sims,
-                               method = method,
-                               seed.start = as.numeric(input$seed2),
-                               verbose = TRUE)
-        rt[["n"]] = ss$Sample.Size
-        rt[["k"]] = as.numeric(input$k2)
-        rt[["wd"]]= ss$Final.Val
-      })
-    } else if(input$SProc == 'Procedure by Saito et al.'){
-      withProgress(message = 'Computing', style = 'notification', value = 0,{
-        ss <- samplesize.saito(rho = rho,
-                               R = R,
-                               target = target,
-                               alpha = alpha,
-                               nsims = Sims,
-                               N_max = as.numeric(input$Nmax),
-                               N_min = as.numeric(input$Nmin),
-                               method = method,
-                               seed.start = as.numeric(input$seed3),
-                               verbose = FALSE)
-        rt[["n"]] = ss$n
-        rt[["k"]] = ss$k
-        rt[["wd"]]= ss$Width
-      })
+  })
+  
+  dataAsy <- reactive({
+    asyk <- as.numeric(input$asyk)
+    asyR <- as.numeric(input$asyR)
+    asyrho <- as.numeric(input$asyrho)
+    asynsims <- as.numeric(input$asynsims)
+    method = ""
+    rt = NULL
+    
+    if(!(is.null(input$Asy)) & input$Asy == 'Generalized Confidence Interval'){
+      method <- "GCI" 
+    } else if(!(is.null(input$Asy)) & input$Asy == 'Modified Large Sample Confidence Interval'){
+      method <- "MLSG" 
     }
+    withProgress(message = 'Computing', style = 'notification', value = 0,{
+    widths <- nINF(n=1e3, 
+                   k   = asyk,
+                   rho = asyrho,
+                   R   = asyR,
+                   method = method,
+                   alpha = 1 - as.numeric(input$asyalpha),
+                   nsims = asynsims
+      )
+    rt[["k"]] = as.numeric(input$asyk)
+    rt[["Mean"]] = as.numeric(widths[[1]])
+    rt[["SD"]]   = as.numeric(widths[[2]])
+    print(widths)
+    })
+    
     return(rt)
   })
-  output$Smps <- renderTable({
+  
+  output$Asmps<-renderTable({ 
+    data.frame("&#961;"=as.numeric(input$asyrho),
+               "R"=as.numeric(input$asyR),
+               "k"=as.integer(dataAsy()$k),
+               "Mean"= format(dataAsy()$Mean, digits=3),
+               "SD"= format(dataAsy()$SD, digits=3),
+               check.names = FALSE)
+  },
+  sanitize.text.function = function(x) x,
+  rownames = FALSE)
+
+  output$Smps <- renderTable({ 
     data.frame("&#961;"=as.numeric(input$rho),
                "R"=as.numeric(input$R),
                "&#969;"=as.numeric(input$target),
                "n"=as.integer(dataSS()$n),
                "k"=as.integer(dataSS()$k),
                "width"= format(dataSS()$wd, digits=3),
-               check.names = FALSE)},
+               check.names = FALSE)
+    },
     sanitize.text.function = function(x) x,
     rownames = FALSE)
-  output$Tmps <- renderText({
-    if(dataSS()$wd>as.numeric(input$target)){
-    ("Warning! \nSample size within supplied search range for the number of participants is not possible.")
-    }
-  })
+    output$Tmps <- renderText({
+      if(dataSS()$wd>as.numeric(input$target)){
+        ("Warning! Sample size within supplied search range for the number of participants is not possible.")
+        }
+      })
+
+  
+  
+  
 }
 
 shinyApp(ui, server)
+

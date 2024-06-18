@@ -1068,3 +1068,66 @@ samplesize.dobbin <- function(rho, R, k, target, max_n=1e3, min_n=4, seed=2, met
   
 }
 
+
+width.MLS<- function(n, k, rho, R, alpha, seed=1){
+  set.seed(seed)
+  data <- data_gen(n,k,rho,R)
+  ests <- ICC_estimate(data, verbose=TRUE)
+  k.lim.2 <- sum(sapply(1:ncol(data), function(x) (mean(data[,x])-mean(data))^2))/(ncol(data)-1)
+  sigma.s.2= (ests$MS.subjects-ests$MS.errors)/ncol(data)
+  sigma.e.2= ests$MS.errors
+  
+  L <- (sigma.s.2/(sigma.s.2+sigma.e.2+k.lim.2/qf(alpha/2,ncol(data)-1,Inf)))
+  U <- (sigma.s.2/(sigma.s.2+sigma.e.2+k.lim.2/qf(1-alpha/2,ncol(data)-1,Inf)))
+  return(U-L)
+}
+
+width.GCI <- function(n, k, rho, R, alpha, seed=1){
+  set.seed(seed)
+  data <- data_gen(n, k, rho, R)
+  ests <- ICC_estimate(data, verbose=TRUE)
+  k.lim.2 <- sum(sapply(1:(ncol(data)-1), function(x) (mean(data[,x])-mean(data))^2))/(ncol(data)-1)
+  sigma.s.2= (ests$MS.subjects-ests$MS.errors)/ncol(data)
+  sigma.e.2= ests$MS.errors
+  
+  chi <- rchisq(1e5, df= ncol(data)-1)
+  gpq <- (sigma.s.2/(sigma.s.2+sigma.e.2+k.lim.2/(chi/(k-1))))
+  ci <- quantile(gpq,c(1-alpha/2, alpha/2))
+  return(unname(ci[1]-ci[2]))
+}
+
+nINF <- function(n =1e3, k, rho, R, method, alpha, nsims){
+  cl <- makeCluster(nclus)
+  clusterExport(cl, list("n",
+                         "k",
+                         "rho",
+                         "R",
+                         "nsims",
+                         "width.GCI",
+                         "width.MLS",
+                         "alpha",
+                         "data_gen",
+                         "ICC_estimate",
+                         "nclus"),
+                envir=environment())
+  if(method == "GCI"){
+    wids <- parSapply(cl, 1:nsims, function(x)
+                   width.GCI(n=n, 
+                             k= k, 
+                             rho=rho, 
+                             R= R, 
+                             alpha=alpha, 
+                             seed=x))
+  }else if(method == "MLSG"){
+    wids <- parSapply(cl, 1:nsims, function(x)
+      width.MLS(n=n, 
+                k= k, 
+                rho=rho, 
+                R= R, 
+                alpha=alpha, 
+                seed=x))
+  }
+  return(list("Width.avg"=mean(wids),
+              "Width.sd" =sd(wids)))
+}
+
