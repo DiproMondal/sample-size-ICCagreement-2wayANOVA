@@ -8,7 +8,7 @@ ui <- navbarPage(
     fluidRow(
       column(4, offset = 2, h1("Choose Procedure"),
              radioButtons("SProc", label = NULL,
-                          choices = c("Procedure by Saito et al.", "Procedure by Dobbin et al.", "Procedure by Doros and Lew"),
+                          choices = c("Procedure by Dobbin et al.", "Procedure by Doros and Lew"),
                           selected = "Procedure by Dobbin et al.")
       )
     ),
@@ -45,14 +45,19 @@ ui <- navbarPage(
                  condition = "input.SProc == 'Procedure by Dobbin et al.'",
                  p("This procedure", HTML("<a href='http://dx.doi.org/10.1016/j.csda.2014.11.010'>[2]</a>")," aims to find the minimum number of participants, ", em("n"),",",
                    "given the number of raters, ", em("k"), ", to achieve a specified width of the confidence interval ",
-                   "around a planned value for the ICC for agreement. Requires specification of a maximum n.")
+                   "around a planned value for the ICC for agreement. Requires specification of a maximum n."),
+                 conditionalPanel(
+                   condition = "input.SDb == 'Generalized Confidence Interval'",
+                   p(em("Note that this option might take some time."))
+                 )
                ),
                conditionalPanel(
                  condition = "input.SProc == 'Procedure by Doros and Lew'",
                  p("This procedure", HTML("<a href='https://doi.org/10.3844/amjbsp.2010.1.8'>[3]</a>")," aims to find the minimum number of participants, ", em("n"),",",
                    "and raters, ", em("k"), " within a grid of possible (", em("n"),em("k"), ") to achieve a specified width of the confidence interval. ",
                    "around a planned value for the ICC for agreement. The grid has been restricted by fixing", em("k"),
-                   "Therefore, this requires specification of k and n.")
+                   "Therefore, this requires specification of k and n."),
+                 p(em("Note that this option might take some time."))
                ),
                conditionalPanel(
                  condition = "input.SProc == 'Procedure by Saito et al.'",
