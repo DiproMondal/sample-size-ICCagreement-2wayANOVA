@@ -841,7 +841,7 @@ bisection <- function(f, a, b,
   
   if(f(a) * f(b) > 0){
     #cat(f(a), f(b), "\n")
-    stop("Functional values at endpoints not of opposite signs.")
+    stop("The supplied number of participants is inadequate to obtain a sample.")
   }
   
   vals.search <- c()
@@ -892,7 +892,6 @@ bisection <- function(f, a, b,
   }else{
     op <- Inf
   }
-  #cat("Bisection_complete:passing results\n")
   
   if(verbose == TRUE){
     return(list("Search" = vals.search,
@@ -1046,17 +1045,10 @@ samplesize.dobbin <- function(rho, R, k, target, max_n=1e3, min_n=4, seed=2, met
     return(opt)
   }
   if(width_fun(max_n)<0){
-    for(i in 1:3){
-      max_n <- max_n*10
-      wd = width_fun(max_n)
-      if(wd>0){
-        break
-      }else if(wd<0){
         opt[['final']] = Inf
         opt[['final.val']] = target-width_fun(max_n)
         return(opt)
-      }
-    }}
+    }
   
   
   
