@@ -271,7 +271,7 @@ server <- function(input,output,session) {
   }
   
   SS <- dataSS()
-  cat("Heeeeeeeeeeeeeeeeeeeeeeeeee", (SS$target - SS$wd)< 1e-5)
+
   output$Smps <- renderTable({ 
     data.frame("&#961;"=SS$rho,
                "R"=SS$R,
