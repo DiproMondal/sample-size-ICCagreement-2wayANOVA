@@ -976,11 +976,12 @@ samplesize.doros<- function(rho,
   
   if(w(n_max)<0){
     if(verbose==FALSE){
-      return("Sample.Size" = Inf)
+      return("Sample.Size" = n_max)
     }else{
-      return(list("Sample.Size" = Inf,
-                  "Search" = cbind.data.frame("n"=Inf,
-                                              "Min.width"=NA),
+      return(list("Sample.Size" = n_max,
+                  "Search" = cbind.data.frame("n"=n_max,
+                                              "Min.width"=
+                                                width(n_max, k=k,rho=rho, R=R,alpha=alpha)),
                   "Time"=Sys.time()-St))
     }
   }
@@ -1096,7 +1097,25 @@ width.GCI <- function(n, k, rho, R, alpha, seed=1){
   return(unname(ci[1]-ci[2]))
 }
 
-nINF <- function(n =1e3, k, rho, R, method, alpha, nsims){
+width.VPF<- function(n, k, rho, R, alpha, seed=1){
+  set.seed(seed)
+  data <- data_gen(n,k,rho,R)
+  ests <- ICC_estimate(data, verbose=TRUE)
+  k.lim.2 <- sum(sapply(1:ncol(data), function(x) (mean(data[,x])-mean(data))^2))/(ncol(data)-1)
+  sigma.s.2= (R+1)/(1/rho-1)
+  sigma.e.2= 1
+  
+  df1 = Inf
+  df2 = (k-1)*(1+sigma.e.2/k.lim.2)^2
+  f1 = qf(alpha/2, df1 = df1, df2 = df2)
+  f2 = qf(1-alpha/2, df1=df1, df2 = df2)
+  
+  L <- (sigma.s.2*f1/(sigma.s.2*f1+sigma.e.2+k.lim.2))
+  U <- (sigma.s.2*f2/(sigma.s.2*f2+sigma.e.2+k.lim.2))
+  return(U-L)
+}
+
+nINF <- function(n =1e3, k, rho, R, method, alpha, nsims=1e3){
   cl <- makeCluster(nclus)
   clusterExport(cl, list("n",
                          "k",
@@ -1121,6 +1140,14 @@ nINF <- function(n =1e3, k, rho, R, method, alpha, nsims){
   }else if(method == "MLSG"){
     wids <- parSapply(cl, 1:nsims, function(x)
       width.MLS(n=n, 
+                k= k, 
+                rho=rho, 
+                R= R, 
+                alpha=alpha, 
+                seed=x))
+  }else if(method == "VPF"){
+    wids <- parSapply(cl, 1:nsims, function(x)
+      width.VPF(n=n, 
                 k= k, 
                 rho=rho, 
                 R= R, 

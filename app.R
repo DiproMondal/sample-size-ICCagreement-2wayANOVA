@@ -85,7 +85,8 @@ ui <- navbarPage(
         sliderInput("alpha", label = "Confidence level",
                     min = 0.8, max = 0.99, step = 0.01, value = 0.95),
         numericInput("Sims", label = "Number of simulations",
-                     min = 10, max = 1e4, step = 10, value = 2500)
+                     min = 10, max = 1e4, step = 10, value = 2500),
+        actionButton("computeSS", "Calculate Sample Size")
       ),
       mainPanel(
         conditionalPanel(
@@ -122,24 +123,22 @@ ui <- navbarPage(
                        min = 10, max = 5e3, step = 1, value = 200),
           numericInput("seed3", label = "Seed:",
                        min = 0, max = Inf, step = 1, value = 123)
-        )
+        ),
+        fluidRow(column(1, tableOutput("Smps"))),
+        fluidRow(column(3, textOutput("Tmps"), style="color:red")),
+        fluidRow(column(3, textOutput("Wmps"), style="color:red"))
       )
     )
   ),
-  
-  tabPanel(
-    title = strong("Sample Size Results"),
-    mainPanel(tableOutput("Smps")),
-    mainPanel(textOutput("Tmps"), style="color:red")
-    #actionButton("stop", "Stop")
-  ),
+
   tabPanel(
     title = strong("Asymptotics"),
     fluidRow(
-      column(4, offset = 2, h1("Choice of Confidence Interval Method"),
+      column(4, offset = 2, h3("Confidence Interval Method"),
              radioButtons("Asy", label = NULL,
                           choices = c("Generalized Confidence Interval", 
-                                      "Modified Large Sample Confidence Interval"),
+                                      "Modified Large Sample Confidence Interval",
+                                      "Variance Partitioning Confidence Interval - F method"),
                           selected = "Modified Large Sample Confidence Interval"))),
     fluidRow(
       column(4, offset=2, h3("Parameters"),
@@ -152,7 +151,8 @@ ui <- navbarPage(
         numericInput("asyR", label = "Rater to error variance ratio",
                      min = 0.001, max = 1000, step = 0.001, value = 0.1),
         numericInput("asynsims", label = "Number of simulations",
-                     min = 1, max = 1e6, step = 1, value = 1000)
+                     min = 1, max = 1e6, step = 1, value = 1000),
+        actionButton("calc",label ="Calculate")
       )),
     fluidRow(
       column(4, offset =2,
@@ -162,16 +162,21 @@ ui <- navbarPage(
   ),
   tabPanel(
     title = strong("Confidence Intervals"),
+    column(4, offset=2, h4("File"),
+           p("Please note that the file should contain ratings of particpiants by raters where the 
+             columns represent ratings by a rater and the rows correspond to different participants (no headers)."),
     fileInput("upload", "Upload a file", accept = ".csv"),
     sliderInput("dataalpha", label = "Confidence level",
                 min = 0.8, max = 0.99, step = 0.01, value = 0.95),
     mainPanel(tableOutput("nfo")),
     mainPanel(tableOutput("Cmps"))
+    )
   )
 ))
 
 server <- function(input,output,session) {
-  dataSS <- reactive({
+  observeEvent(input$computeSS, {
+  dataSS <- function(){#reactive({
     alpha <- 1 - as.numeric(input$alpha)
     rho   <- as.numeric(input$rho)
     R     <- as.numeric(input$R)
@@ -209,6 +214,11 @@ server <- function(input,output,session) {
             rt[["n"]] = ss$final
             rt[["k"]] = as.numeric(input$k)
             rt[["wd"]]= ss$final.val
+            
+            rt[["k"]] = as.numeric(input$k)
+            rt[["target"]] = target
+            rt[["rho"]]  = rho
+            rt[["R"]]  = R
           })
         } else if(input$SProc == 'Procedure by Doros and Lew'){
           withProgress(message = 'Computing', style = 'notification', value = 0,{
@@ -226,6 +236,11 @@ server <- function(input,output,session) {
             rt[["n"]] = ss$Sample.Size
             rt[["k"]] = as.numeric(input$k2)
             rt[["wd"]]= ss$Final.Val
+            
+            rt[["k"]] = as.numeric(input$k)
+            rt[["target"]] = target
+            rt[["rho"]]  = rho
+            rt[["R"]]  = R
 
           })
         } else if(input$SProc == 'Procedure by Saito et al.'){
@@ -240,13 +255,45 @@ server <- function(input,output,session) {
                                    method = method,
                                    seed.start = as.numeric(input$seed3),
                                    verbose = FALSE)
+            
             rt[["n"]] = ss$n
             rt[["k"]] = ss$k
             rt[["wd"]]= ss$Width
+            
+            rt[["k"]] = as.numeric(input$k)
+            rt[["target"]] = target
+            rt[["rho"]]  = rho
+            rt[["R"]]  = R
           })
         }
         return(rt)
     
+  }
+  
+  SS <- dataSS()
+  cat("Heeeeeeeeeeeeeeeeeeeeeeeeee", (SS$target - SS$wd)< 1e-5)
+  output$Smps <- renderTable({ 
+    data.frame("&#961;"=SS$rho,
+               "R"=SS$R,
+               "&#969;"=SS$target,
+               "n"=as.integer(SS$n),
+               "k"=as.integer(SS$k),
+               "width"= format(SS$wd, digits=3),
+               check.names = FALSE)
+  },
+  sanitize.text.function = function(x) x,
+  rownames = FALSE)
+  output$Tmps <- renderText({
+    if (!is.null(SS$wd) & SS$wd > as.numeric(input$target)) {
+      ("Warning! Sample size within supplied search range for the number of participants is not possible.")
+    }
+  })
+  output$Wmps <- renderText({
+    if (abs(as.numeric(input$target) - SS$wd) > 1e-5) {
+     ("Warning! Note that the empirical average width of the confidence interval is too small than target width")
+    }
+  })
+  
   })
   
   dataAsy <- reactive({
@@ -261,6 +308,8 @@ server <- function(input,output,session) {
       method <- "GCI" 
     } else if(!(is.null(input$Asy)) & input$Asy == 'Modified Large Sample Confidence Interval'){
       method <- "MLSG" 
+    } else if(!(is.null(input$Asy)) & input$Asy == 'Variance Partitioning Confidence Interval - F method'){
+      method <- "VPF" 
     }
     withProgress(message = 'Computing', style = 'notification', value = 0,{
     widths <- nINF(n=1e3, 
@@ -287,6 +336,7 @@ server <- function(input,output,session) {
                   alpha = 1-as.numeric(input$dataalpha)))
   })
   
+  observeEvent(input$calc,{
   output$Asmps<-renderTable({ 
     data.frame("&#961;"=as.numeric(input$asyrho),
                "R"=as.numeric(input$asyR),
@@ -297,23 +347,9 @@ server <- function(input,output,session) {
   },
   sanitize.text.function = function(x) x,
   rownames = FALSE)
+  })
 
-  output$Smps <- renderTable({ 
-    data.frame("&#961;"=as.numeric(input$rho),
-               "R"=as.numeric(input$R),
-               "&#969;"=as.numeric(input$target),
-               "n"=as.integer(dataSS()$n),
-               "k"=as.integer(dataSS()$k),
-               "width"= format(dataSS()$wd, digits=3),
-               check.names = FALSE)
-    },
-    sanitize.text.function = function(x) x,
-    rownames = FALSE)
-    output$Tmps <- renderText({
-      if(dataSS()$wd>as.numeric(input$target)){
-        ("Warning! Sample size within supplied search range for the number of participants is not possible.")
-        }
-      })
+  
 
   output$nfo <- renderTable({
     data.frame("Participants" = dataRead()$n,
