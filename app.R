@@ -279,7 +279,7 @@ server <- function(input,output,session) {
                "&#969;"=SS$target,
                "n"=as.integer(SS$n),
                "k"=as.integer(SS$k),
-               "width"= format(SS$wd, digits=3)
+               "width"= format(SS$wd, digits=3),
                check.names = FALSE)
   },
   sanitize.text.function = function(x) x,
