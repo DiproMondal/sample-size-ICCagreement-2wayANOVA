@@ -126,7 +126,8 @@ ui <- navbarPage(
         ),
         fluidRow(column(1, tableOutput("Smps"))),
         fluidRow(column(3, textOutput("Tmps"), style="color:red")),
-        fluidRow(column(3, textOutput("Wmps"), style="color:red"))
+        fluidRow(column(3, textOutput("Wmps"), style="color:red")),
+        fluidRow(column(3, textOutput("Mmps"), style="color:red"))
       )
     )
   ),
@@ -139,7 +140,7 @@ ui <- navbarPage(
                           choices = c("Generalized Confidence Interval", 
                                       "Modified Large Sample Confidence Interval",
                                       "Variance Partitioning Confidence Interval - F method"),
-                          selected = "Modified Large Sample Confidence Interval"))),
+                          selected = "Variance Partitioning Confidence Interval - F method"))),
     fluidRow(
       column(4, offset=2, h3("Parameters"),
         sliderInput("asyalpha", label = "Confidence level",
@@ -182,21 +183,18 @@ server <- function(input,output,session) {
     R     <- as.numeric(input$R)
     Sims  <- as.numeric(input$Sims)
     target <- as.numeric(input$target)
+    cat(input$SDl,"\n")
     method <- ""
     rt <- NULL
-    if((!(is.null(input$SDb)) & input$SDb == 'Generalized Confidence Interval') || 
-       (!(is.null(input$SSt)) & input$SSt == 'Generalized Confidence Interval') ||
-       (!(is.null(input$SDl)) & input$SDl == 'Generalized Confidence Interval')){
-      method <- "GCI" 
-    } else if((!(is.null(input$SDb)) & input$SDb == 'Modified Large Sample Confidence Interval') || 
-              (!(is.null(input$SDl)) & input$SDl == 'Modified Large Sample Confidence Interval') ||
-              (!(is.null(input$SSt)) & input$SSt == 'Modified Large Sample Confidence Interval')){
-      method <- "MLSG" 
-    } else if((!(is.null(input$SSt)) & input$SSt == 'Variance Partitioning Confidence Interval - F method')||
-              (!(is.null(input$SDl)) & input$Sdl == 'Variance Partitioning Confidence Interval - F method')){
+    if(!(is.null(input$SDl)) && input$SDl == 'Variance Partitioning Confidence Interval - F method') {
       method <- "variance.partition"
+    } else if((!(is.null(input$SDb)) && input$SDb == 'Generalized Confidence Interval') || 
+              (!(is.null(input$SDl)) && input$SDl == 'Generalized Confidence Interval')) {
+      method <- "GCI"
+    } else if((!(is.null(input$SDb)) && input$SDb == 'Modified Large Sample Confidence Interval') || 
+              (!(is.null(input$SDl)) && input$SDl == 'Modified Large Sample Confidence Interval')) {
+      method <- "MLSG"
     }
-
 
       if(input$SProc == 'Procedure by Dobbin et al.'){
           withProgress(message = 'Computing', style = 'notification', value = 0,{
@@ -219,6 +217,7 @@ server <- function(input,output,session) {
             rt[["target"]] = target
             rt[["rho"]]  = rho
             rt[["R"]]  = R
+            rt[["method"]] = method
           })
         } else if(input$SProc == 'Procedure by Doros and Lew'){
           withProgress(message = 'Computing', style = 'notification', value = 0,{
@@ -241,6 +240,7 @@ server <- function(input,output,session) {
             rt[["target"]] = target
             rt[["rho"]]  = rho
             rt[["R"]]  = R
+            rt[["method"]] = method
 
           })
         } else if(input$SProc == 'Procedure by Saito et al.'){
@@ -264,6 +264,7 @@ server <- function(input,output,session) {
             rt[["target"]] = target
             rt[["rho"]]  = rho
             rt[["R"]]  = R
+            rt[["method"]] = method
           })
         }
         return(rt)
@@ -278,7 +279,7 @@ server <- function(input,output,session) {
                "&#969;"=SS$target,
                "n"=as.integer(SS$n),
                "k"=as.integer(SS$k),
-               "width"= format(SS$wd, digits=3),
+               "width"= format(SS$wd, digits=3)
                check.names = FALSE)
   },
   sanitize.text.function = function(x) x,
@@ -289,9 +290,13 @@ server <- function(input,output,session) {
     }
   })
   output$Wmps <- renderText({
-    if (abs(as.numeric(input$target) - SS$wd) > 1e-5) {
+    if (abs(as.numeric(input$target) - SS$wd) > 1e-2) {
      ("Warning! Note that the empirical average width of the confidence interval is too small than target width")
     }
+  })
+  output$Mmps <- renderText({
+    if(SS$method=='variance.partition' & SS$R>1){}
+    ("Warning!The Variance Paritioning method is not recommended with R>1.")
   })
   
   })
