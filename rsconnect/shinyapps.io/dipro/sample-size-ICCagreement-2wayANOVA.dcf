@@ -5,9 +5,9 @@ account: dipro
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 12197829
-bundleId: 8921351
+bundleId: 9114379
 url: https://dipro.shinyapps.io/sample-size-ICCagreement-2wayANOVA/
 version: 1
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: .gitattributes|.RData|LICENSE|README.md
+ignoredFiles: .gitattributes|.RData|hoopa.txt|LICENSE

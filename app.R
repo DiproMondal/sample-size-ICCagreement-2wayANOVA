@@ -183,7 +183,7 @@ server <- function(input,output,session) {
     R     <- as.numeric(input$R)
     Sims  <- as.numeric(input$Sims)
     target <- as.numeric(input$target)
-    cat(input$SDl,"\n")
+
     method <- ""
     rt <- NULL
     if(!(is.null(input$SDl)) && input$SDl == 'Variance Partitioning Confidence Interval - F method') {
@@ -296,7 +296,7 @@ server <- function(input,output,session) {
   })
   output$Mmps <- renderText({
     if(SS$method=='variance.partition' & SS$R>1){}
-    ("Warning!The Variance Paritioning method is not recommended with R>1.")
+    ("Warning!The Variance Paritioning method is not recommended with rater to variance ratio greater than 1. Please use other confidence interval method.")
   })
   
   })
