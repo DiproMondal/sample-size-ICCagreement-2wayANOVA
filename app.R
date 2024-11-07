@@ -124,6 +124,7 @@ ui <- navbarPage(
           numericInput("seed3", label = "Seed:",
                        min = 0, max = Inf, step = 1, value = 123)
         ),
+<<<<<<< Updated upstream
         fluidRow(column(1, tableOutput("Smps"))),
         fluidRow(column(3, textOutput("Tmps"), style="color:red")),
         fluidRow(column(3, textOutput("Wmps"), style="color:red")),
@@ -132,6 +133,21 @@ ui <- navbarPage(
     )
   ),
 
+=======
+        
+      ),
+      mainPanel(tableOutput("Smps")),
+      mainPanel(textOutput("Tmps"), style="color:red")
+    )
+  ),
+  
+  tabPanel(
+    title = strong("Sample Size Results"),
+    #mainPanel(tableOutput("Smps")),
+    #mainPanel(textOutput("Tmps"), style="color:red")
+    #actionButton("stop", "Stop")
+  ),
+>>>>>>> Stashed changes
   tabPanel(
     title = strong("Asymptotics"),
     fluidRow(
@@ -153,7 +169,11 @@ ui <- navbarPage(
                      min = 0.001, max = 1000, step = 0.001, value = 0.1),
         numericInput("asynsims", label = "Number of simulations",
                      min = 1, max = 1e6, step = 1, value = 1000),
+<<<<<<< Updated upstream
         actionButton("calc",label ="Calculate")
+=======
+        actionButton("computeAs", "Calculate Asymptotic Width")
+>>>>>>> Stashed changes
       )),
     fluidRow(
       column(4, offset =2,
@@ -176,8 +196,12 @@ ui <- navbarPage(
 ))
 
 server <- function(input,output,session) {
+<<<<<<< Updated upstream
   observeEvent(input$computeSS, {
   dataSS <- function(){#reactive({
+=======
+  dataSS <- observeEvent(input$computeSS, {
+>>>>>>> Stashed changes
     alpha <- 1 - as.numeric(input$alpha)
     rho   <- as.numeric(input$rho)
     R     <- as.numeric(input$R)
@@ -269,6 +293,7 @@ server <- function(input,output,session) {
         }
         return(rt)
     
+<<<<<<< Updated upstream
   }
   
   SS <- dataSS()
@@ -299,9 +324,28 @@ server <- function(input,output,session) {
     ("Warning!The Variance Paritioning method is not recommended with rater to variance ratio greater than 1. Please use other confidence interval method.")
   })
   
+=======
+    output$Smps <- renderTable({ 
+      data.frame("&#961;"=as.numeric(input$rho),
+                 "R"=as.numeric(input$R),
+                 "&#969;"=as.numeric(input$target),
+                 "n"=as.integer(dataSS()$n),
+                 "k"=as.integer(dataSS()$k),
+                 "width"= format(dataSS()$wd, digits=3),
+                 check.names = FALSE)
+    },
+    sanitize.text.function = function(x) x,
+    rownames = FALSE)
+    output$Tmps <- renderText({
+      if(dataSS()$wd>as.numeric(input$target)){
+        ("Warning! Sample size within supplied search range for the number of participants is not possible.")
+      }
+    })
+    
+>>>>>>> Stashed changes
   })
   
-  dataAsy <- reactive({
+  dataAsy <- observeEvent(input$computeAs,{
     asyk <- as.numeric(input$asyk)
     asyR <- as.numeric(input$asyR)
     asyrho <- as.numeric(input$asyrho)
