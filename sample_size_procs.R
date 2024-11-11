@@ -1025,7 +1025,7 @@ samplesize.dobbin <- function(rho, R, k, target, max_n=1e3, min_n=4, seed=2, met
                            mcrunsW = reps_VC,
                            randomseed = seed)
     }
-  }else if(method=="MLSG"){
+  }else if(method=="MLSA"){
     function(x){
       target-myMLSvolfun(alpha=alpha,
                          b0=x,
