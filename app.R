@@ -53,9 +53,9 @@ ui <- navbarPage(
                          mainPanel(
                            conditionalPanel(
                              condition = "input.SProc == 'Procedure by Dobbin et al.'",
-                             p("This procedure ", HTML("<a href='http://dx.doi.org/10.1016/j.csda.2014.11.010'>[2]</a>"),
-                               " aims to find the minimum number of participants, ", em("n"), ", given the number of raters, ", 
-                               em("k"), ", to achieve a specified width of the confidence interval around a planned value for the ICC for agreement. Requires specification of a maximum n."),
+                             p("This procedure", HTML("<a href='http://dx.doi.org/10.1016/j.csda.2014.11.010'>[2]</a>")," aims to find the minimum number of participants, ", em("n"),",",
+                               "given the number of raters, ", em("k"), ", to achieve a specified width of the confidence interval ",
+                               "around a planned value for the ICC for agreement. Requires specification of a maximum n."),
                              conditionalPanel(
                                condition = "input.SDb == 'Generalized Confidence Interval'",
                                p(em("Note that this option might take some time."))
@@ -63,16 +63,17 @@ ui <- navbarPage(
                            ),
                            conditionalPanel(
                              condition = "input.SProc == 'Procedure by Doros and Lew'",
-                             p("This procedure ", HTML("<a href='https://doi.org/10.3844/amjbsp.2010.1.8'>[3]</a>"),
-                               " aims to find the minimum number of participants, ", em("n"), ", and raters, ", em("k"), 
-                               " within a grid of possible (", em("n"), em("k"), ") to achieve a specified width of the confidence interval. Requires specification of k and n."),
+                             p("This procedure", HTML("<a href='https://doi.org/10.3844/amjbsp.2010.1.8'>[3]</a>")," aims to find the minimum number of participants, ", em("n"),",",
+                               "and raters, ", em("k"), " within a grid of possible (", em("n"),em("k"), ") to achieve a specified width of the confidence interval. ",
+                               "around a planned value for the ICC for agreement. The grid has been restricted by fixing", em("k"),
+                               "Therefore, this requires specification of k and n."),
                              p(em("Note that this option might take some time."))
                            ),
                            conditionalPanel(
                              condition = "input.SProc == 'Procedure by Saito et al.'",
-                             p("This procedure ", HTML("<a href='https://doi.org/10.1002/sim.2294'>[1]</a>"),
-                               " aims to find the combination of participants, ", em("n"), ", and raters, ", em("k"), 
-                               ", to achieve a specified width of the confidence interval around a planned value for the ICC for agreement. Requires specification of a maximum N = n x k.")
+                             p("This procedure", HTML("<a href='https://doi.org/10.1002/sim.2294'>[1]</a>")," aims to find the combination of participants, ", em("n"),",",
+                               "and raters, ", em("k"), ", to achieve a specified width of the confidence interval ",
+                               "around a planned value for the ICC for agreement. Requires specification of a maximum N = n x k.")
                            )
                          )
                   )
