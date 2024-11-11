@@ -176,6 +176,18 @@ ui <- navbarPage(
                          div(textOutput("Tmps"), style = "color:red")
                   )
                 )
+              ),
+              tabPanel(
+                title = strong("Confidence Intervals"),
+                column(4, offset=2, h4("File"),
+                       p("Please note that the file should contain ratings of particpiants by raters where the 
+             columns represent ratings by a rater and the rows correspond to different participants (no headers)."),
+                       fileInput("upload", "Upload a file", accept = ".csv"),
+                       sliderInput("dataalpha", label = "Confidence level",
+                                   min = 0.8, max = 0.99, step = 0.01, value = 0.95),
+                       mainPanel(tableOutput("nfo")),
+                       mainPanel(tableOutput("Cmps"))
+                )
               )
   )
 )
