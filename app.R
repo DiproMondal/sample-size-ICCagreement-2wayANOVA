@@ -64,7 +64,7 @@ ui <- navbarPage(
                            conditionalPanel(
                              condition = "input.SProc == 'Procedure by Doros and Lew'",
                              p("This procedure", HTML("<a href='https://doi.org/10.3844/amjbsp.2010.1.8'>[3]</a>")," aims to find the minimum number of participants, ", em("n"),",",
-                               "and raters, ", em("k"), " within a grid of possible (", em("n"),em("k"), ") to achieve a specified width of the confidence interval. ",
+                               "and raters, ", em("k"), " within a grid of possible (", em("n"),",",em("k"), ") to achieve a specified width of the confidence interval. ",
                                "around a planned value for the ICC for agreement. The grid has been restricted by fixing", em("k"),
                                "Therefore, this requires specification of k and n."),
                              p(em("Note that this option might take some time."))
