@@ -333,7 +333,7 @@ server <- function(input, output, session) {
                check.names=FALSE)
   },
   sanitize.text.function = function(x) x,
-  rownames = FALSE)
+  rownames = TRUE)
   
 }
 
