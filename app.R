@@ -57,8 +57,15 @@ ui <- navbarPage(
                                "given the number of raters, ", em("k"), ", to achieve a specified width of the confidence interval ",
                                "around a planned value for the ICC for agreement. Requires specification of a maximum n."),
                              conditionalPanel(
+                               condition = "input.SDb == 'Modified Large Sample Confidence Interval'",
+                               p(em("Utilizes Modified Large Sample Confidence Interval (MLSA) by"), 
+                                    HTML("<a href='https://www.tandfonline.com/doi/pdf/10.1080/03610928208828338'>Arteaga et al.</a>"), ".")
+                             ),
+                             conditionalPanel(
                                condition = "input.SDb == 'Generalized Confidence Interval'",
-                               p(em("Note that this option might take some time."))
+                               p(em("Utilizes Generalized Confidence Interval (GCI) by"),
+                                    HTML("<a href='https://doi.org/10.1002/sim.1782'>Tian and Cappelleri</a>"), ".",
+                               em("Note that this option might take some time."))
                              )
                            ),
                            conditionalPanel(
@@ -67,7 +74,24 @@ ui <- navbarPage(
                                "and raters, ", em("k"), " within a grid of possible (", em("n"),",",em("k"), ") to achieve a specified width of the confidence interval. ",
                                "around a planned value for the ICC for agreement. The grid has been restricted by fixing", em("k"),
                                "Therefore, this requires specification of k and n."),
-                             p(em("Note that this option might take some time."))
+                             conditionalPanel(
+                               condition = "input.SDl == 'Variance Partitioning Confidence Interval - F method'",
+                               p(em("Utilizes variance partitioning confidence interval using an F-distribution (VPF) by"), 
+                                 HTML("<a href='https://doi.org/10.1177/0962280214522787'>Demetrashvili et al.</a>"), ".",
+                                 em("Note that this option might take some time."))
+                             ),
+                             conditionalPanel(
+                               condition = "input.SDl == 'Modified Large Sample Confidence Interval'",
+                               p(em("Utilizes Modified Large Sample Confidence Interval (MLSG) by"), 
+                                 HTML("<a href='https://doi.org/10.1002/sim.1402'>Cappelleri and Ting</a>"), ".",
+                                 em("Note that this option might take some time."))
+                             ),
+                             conditionalPanel(
+                               condition = "input.SDl == 'Generalized Confidence Interval'",
+                               p(em("Utilizes Generalized Confidence Interval (GCI) by"),
+                                 HTML("<a href='https://doi.org/10.1002/sim.1782'>Tian and Cappelleri</a>"), ".",
+                                 em("Note that this option might take some time."))
+                             )
                            ),
                            conditionalPanel(
                              condition = "input.SProc == 'Procedure by Saito et al.'",
@@ -181,7 +205,7 @@ ui <- navbarPage(
               tabPanel(
                 title = strong("Confidence Intervals"),
                 column(4, offset=2, h4("File"),
-                       p("Please note that the file (.csv) should contain ratings of particpiants by raters where the 
+                       p("Please note that the file (.csv) should contain ratings of particpiants by raters (comma separated) where the 
              columns represent ratings by a rater and the rows correspond to different participants (no headers)."),
                        fileInput("upload", "Upload a file", accept = ".csv"),
                        sliderInput("dataalpha", label = "Confidence level",
