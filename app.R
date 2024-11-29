@@ -181,7 +181,7 @@ ui <- navbarPage(
               tabPanel(
                 title = strong("Confidence Intervals"),
                 column(4, offset=2, h4("File"),
-                       p("Please note that the file should contain ratings of particpiants by raters where the 
+                       p("Please note that the file (.csv) should contain ratings of particpiants by raters where the 
              columns represent ratings by a rater and the rows correspond to different participants (no headers)."),
                        fileInput("upload", "Upload a file", accept = ".csv"),
                        sliderInput("dataalpha", label = "Confidence level",
