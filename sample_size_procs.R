@@ -147,9 +147,9 @@ ci.variance.partition <- function(data,        ## A 2d matrix with columns repre
   
   vmat<- tryCatch({
     solve(FI.mat)
-    },error = function(e){
-      solve(FI.mat+diag(3)*1e-2)
-                          })
+  },error = function(e){
+    solve(FI.mat+diag(3)*1e-2)
+  })
   diag(vmat) <- replace(diag(vmat),diag(vmat)<0, 1e-8)
   if(method=="F"){
     vmat = diag(diag(vmat))
@@ -330,6 +330,41 @@ ci.MLSG <- function(data, alpha = 0.05) {
   
 }
 
+## Simulation to obtain confidence interval for a combination of n, k, rho, R
+## The coverage and average width can be obtained by analysing these confidence 
+## intervals
+Simulation <- function(n, k, rho, R, nsim=1e4, alpha=0.05, st.seed=0){
+  cis<-
+    lapply(1:nsim, function(x){
+      set.seed(st.seed+x)
+      dat = data_gen(n=n,k=k,rho=rho,R=R)
+      return(list("Wmat"= ci.delta.mat(data=dat,
+                                       alpha=alpha),
+                  "Wlog"= ci.delta.log(data=dat,
+                                       alpha=alpha),
+                  "MLSA"= ci.MLSA(data=dat,
+                                  alpha=alpha),
+                  "MLSG"= ci.MLSG(data=dat,
+                                  alpha=alpha),
+                  "GCI" = ci.GCI(data=dat,
+                                 alpha=alpha),
+                  "VPF" = ci.VPF(data=dat,
+                                 alpha=alpha),
+                  "VPB" = ci.VPB(data=dat,
+                                 alpha=alpha)
+      ))
+    })
+  return(list("rho"=rho,
+              "R" = R,
+              "n" = n,
+              "k" = k,
+              "alpha"= alpha,
+              "seed"= st.seed,
+              "CI"  = cis))
+}
+
+
+### Sample Size determination according to Saito
 k_for_nk <-function(N, R, rho){
   phi <- R * (1-rho)/(1+R)
   b = -(N+1)
@@ -1046,10 +1081,10 @@ samplesize.dobbin <- function(rho, R, k, target, max_n=1e3, min_n=4, seed=2, met
     return(opt)
   }
   if(width_fun(max_n)<0){
-      opt[['final']] = max_n
-      opt[['final.val']] = target-width_fun(max_n)
-      return(opt)
-    }
+    opt[['final']] = max_n
+    opt[['final.val']] = target-width_fun(max_n)
+    return(opt)
+  }
   
   
   
@@ -1131,12 +1166,12 @@ nINF <- function(n =1e3, k, rho, R, method, alpha, nsims=1e3){
                 envir=environment())
   if(method == "GCI"){
     wids <- parSapply(cl, 1:nsims, function(x)
-                   width.GCI(n=n, 
-                             k= k, 
-                             rho=rho, 
-                             R= R, 
-                             alpha=alpha, 
-                             seed=x))
+      width.GCI(n=n, 
+                k= k, 
+                rho=rho, 
+                R= R, 
+                alpha=alpha, 
+                seed=x))
   }else if(method == "MLSG"){
     wids <- parSapply(cl, 1:nsims, function(x)
       width.MLS(n=n, 
@@ -1175,4 +1210,7 @@ CIdata <- function(datafile, alpha=0.05){
     "ciGCI" = ciGCI
   ))
 }
+
+
+
 
